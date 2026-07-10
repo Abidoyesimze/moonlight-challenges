@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../",
+  "sources": ["src/payveil.compact", "compiler/standard-library.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EASA;;;;;;;;;;;;;;;;MASA,AAAA,YAgBC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAKD,AAAA,YAEC;;OAAA;;;;GA9BA;EAFD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAJA;;;;;;;;;yEAAuC;IACvC;;;;;;;;;yEAAoC;IACpC;;;;;;;;;;yEAAwC;UAGtC,KAAW;IAAX;;;;;;;2HAAA,KAAW;;yEAAA;;;;;;;GACZ;ECXD,AAAA,kBAAA;oEAAA;;;EDeA,AAAA,aAAgC;;0DAAhC,UAAgC;;;;;;;;;;;;;;GAAA;EAChC,AAAA,WAA6B;;0DAA7B,QAA6B;;;;;;;;;;;;;;GAAA;EAE7B,AAAA,eAgBC;UAbO,WAAgD;;qDAC9C;;;;;;;;;;;4KAAiB,WAAS;;;;0HAAjB;;UAEX,QAAmB;4BAClB,QAAM;4BACN,QAAM;IAEb;;;;;;;;;;2HAA0B,WAAS;;;;;wEAA1B;UAGH,UAA6C;;;;;kDAAjC;;;;;;;;;;;uHAAW;;0BAAG,QAAM;IACtC;;;;;;;2HAAuB,UAAQ;;yEAApB;UACX,KAAe;IAAf;;;;;;;;;;6FAAA,KAAe;;;;wEAAA;;GAChB;EAKD,AAAA,eAEC,CAF2B,UAAmB;;mCACwB,UAAQ;GAC9E;;;;;;;;;;;;;;;;IApCD;qCAAA;;;;;;;;;;;0GAAuC;KAAA;IACvC;qCAAA;;;;;;;;;;;0GAAoC;KAAA;IACpC;;;;;uCAAA;;;;;;;;;;;;;;;;4GAAwC;;;;;;uCAAxC;;;;;;;;;;;;4GAAwC;;;;;;;;;;;;;;uCAAxC;;;;;;;;;;;;;;;4GAAwC;;;;;;;;;KAAA;;;;;;;;;;EAgCxC,AAAA,YAEC;;;;UAF2B,UAAmB;;;;;;;;0CAAnB,UAAmB;GAE9C;;;;"
+}
