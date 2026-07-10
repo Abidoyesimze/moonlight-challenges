@@ -1,0 +1,42 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Public ledger state: visible to anyone reading the chain.
+export ledger submissionCount: Counter;
+export ledger totalSalary: Uint<64>;
+export ledger submitted: Set<Bytes<32>>;
+
+constructor() {
+  totalSalary = 0;
+}
+
+// Private witnesses: resolved locally by the caller's wallet/CLI and never
+// leave the prover unless explicitly passed to disclose().
+witness mySecretId(): Bytes<32>;
+witness mySalary(): Uint<64>;
+
+export circuit submitSalary(): [] {
+  // A nullifier derived from the caller's private secret ID stops the same
+  // person from submitting twice, without ever revealing who they are.
+  const nullifier = disclose(nullifierFor(mySecretId()));
+  assert(!submitted.member(nullifier), "You have already submitted a salary");
+
+  const salary = mySalary();
+  assert(salary > 0, "Salary must be greater than zero");
+  assert(salary < 100000000, "Salary exceeds sanity bound");
+
+  submitted.insert(disclose(nullifier));
+  // Only the updated aggregate sum is disclosed to the public ledger -
+  // the individual salary value itself never leaves the private witness.
+  const newTotal = (totalSalary + salary) as Uint<64>;
+  totalSalary = disclose(newTotal);
+  submissionCount.increment(1);
+}
+
+// Derives the public nullifier for a given private secret ID. Exposed so
+// callers can locally check whether their identity has already submitted,
+// without needing to disclose the secret ID itself.
+export circuit nullifierFor(secretId: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "payveil:nf:"), secretId]);
+}
