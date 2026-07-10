@@ -1,0 +1,30 @@
+# Node.js
+node_modules/
+dist/
+build/
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+midnight-level-db/
+
+# Test reports
+**/reports
+coverage/
+
+# dotenv environment variables file
+.env
+
+# MacOS
+.DS_Store
+
+# IDEs and editors
+.idea/
+*.suo
+
+# Output of 'npm pack'
+*.tgz
