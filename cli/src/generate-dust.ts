@@ -46,13 +46,38 @@ export const generateDust = async (
   unshieldedState: UnshieldedWalletState,
   walletFacade: WalletFacade,
 ) => {
-  const dustState = await walletFacade.dust.waitForSyncedState();
+  // waitForSyncedState() requires the dust lane to be perfectly synced
+  // (allowedGap=0), which can hang indefinitely for a wallet whose dust
+  // progress never reports strictly complete. We only need the dust
+  // address here, so use the lighter getAddress() instead.
+  const dustAddress = await walletFacade.dust.getAddress();
   const networkId = getNetworkId();
   const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
   const utxos = unshieldedState.availableCoins.filter((coin) => !coin.meta.registeredForDustGeneration);
 
+  const waitForDustBalance = () =>
+    rx.firstValueFrom(
+      walletFacade.state().pipe(
+        // Same rationale as wallet-utils.ts: fail fast if the live-update
+        // subscription silently dies, instead of hanging indefinitely.
+        rx.timeout({ each: 90_000 }),
+        rx.filter((s) => s.dust.balance(new Date()) > 0n),
+        rx.map((s) => s.dust.balance(new Date())),
+      ),
+    );
+
   if (utxos.length === 0) {
-    logger.info('No unregistered UTXOs found for dust generation.');
+    logger.info('NIGHT UTXOs already registered for dust generation.');
+    const currentDustBalance = (await rx.firstValueFrom(walletFacade.state())).dust.balance(new Date());
+    if (currentDustBalance > 0n) {
+      logger.info(`Dust balance already available: ${currentDustBalance}`);
+      return;
+    }
+    // Dust accrues gradually over time from registered UTXOs; a prior
+    // registration may not have produced spendable dust yet.
+    logger.info('Dust balance is still 0; waiting for it to accrue...');
+    const dustBalance = await waitForDustBalance();
+    logger.info(`Dust balance accrued: ${dustBalance}`);
     return;
   }
 
@@ -62,17 +87,12 @@ export const generateDust = async (
     utxos,
     unshieldedKeystore.getPublicKey(),
     (payload) => unshieldedKeystore.signData(payload),
-    dustState.address,
+    dustAddress,
   );
   const transaction = await walletFacade.finalizeRecipe(recipe);
   const txId = await walletFacade.submitTransaction(transaction);
 
-  const dustBalance = await rx.firstValueFrom(
-    walletFacade.state().pipe(
-      rx.filter((s) => s.dust.balance(new Date()) > 0n),
-      rx.map((s) => s.dust.balance(new Date())),
-    ),
-  );
+  const dustBalance = await waitForDustBalance();
   logger.info(`Dust generation transaction submitted with txId: ${txId}`);
   logger.info(`Receiver dust balance after generation: ${dustBalance}`);
 

@@ -51,16 +51,19 @@ const isProgressStrictlyComplete = (progress: unknown): boolean => {
   return (candidate.isStrictlyComplete as () => boolean)();
 };
 
-const isFacadeStateSynced = (state: FacadeState): boolean =>
-  isProgressStrictlyComplete(state.shielded.state.progress) &&
-  isProgressStrictlyComplete(state.dust.state.progress) &&
-  isProgressStrictlyComplete(state.unshielded.progress);
+// Deploying a contract only needs the unshielded (NIGHT) balance to be
+// confirmed. A brand-new wallet with zero shielded/dust history can sit at
+// shielded/dust progress.isStrictlyComplete() === false indefinitely, so
+// requiring those lanes here would make this never resolve. DUST balance
+// (needed to pay fees) is checked separately, directly, in generate-dust.ts.
+const isFacadeStateSynced = (state: FacadeState): boolean => isProgressStrictlyComplete(state.unshielded.progress);
 
 export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000) => {
   logger.info('Syncing wallet...');
 
   return Rx.firstValueFrom(
     wallet.state().pipe(
+      Rx.timeout({ each: 90_000 }),
       Rx.tap((state: FacadeState) => {
         const shieldedSynced = isProgressStrictlyComplete(state.shielded.state.progress);
         const unshieldedSynced = isProgressStrictlyComplete(state.unshielded.progress);
@@ -108,7 +111,13 @@ export const waitForUnshieldedFunds = async (
   logger.info(`Using unshielded address: ${unshieldedAddress.toString()} waiting for funds...`);
   if (fundFromFaucet && env.faucet) {
     logger.info('Requesting tokens from faucet...');
-    await new FaucetClient(env.faucet, logger).requestTokens(unshieldedAddress.toString());
+    try {
+      await new FaucetClient(env.faucet, logger).requestTokens(unshieldedAddress.toString());
+    } catch (e) {
+      // Don't let a faucet outage/network blip block us when the wallet
+      // may already be funded - fall through to the balance check below.
+      logger.warn(`Faucet request failed, continuing anyway: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
   const initialBalance = initialState.balances[tokenType.raw];
   if (initialBalance === undefined || initialBalance === 0n) {
@@ -116,6 +125,11 @@ export const waitForUnshieldedFunds = async (
     logger.info(`Waiting to receive tokens...`);
     return Rx.firstValueFrom(
       wallet.state().pipe(
+        // The underlying live-update subscription (websocket) can die
+        // silently and stop emitting entirely without erroring. Fail fast
+        // if no state emission arrives for a while, rather than hanging
+        // indefinitely - the caller can then retry with a fresh connection.
+        Rx.timeout({ each: 90_000 }),
         Rx.tap((state: FacadeState) => {
           const balance = state.unshielded.balances[tokenType.raw] ?? 0n;
           logger.debug(

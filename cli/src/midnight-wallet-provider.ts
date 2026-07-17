@@ -45,6 +45,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
   readonly unshieldedKeystore: UnshieldedKeystore;
   readonly zswapSecretKeys: ZswapSecretKeys;
   readonly dustSecretKey: DustSecretKey;
+  readonly masterSeedHex: string;
 
   private constructor(
     logger: Logger,
@@ -53,6 +54,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
     zswapSecretKeys: ZswapSecretKeys,
     dustSecretKey: DustSecretKey,
     unshieldedKeystore: UnshieldedKeystore,
+    masterSeedHex: string,
   ) {
     this.logger = logger;
     this.env = environmentConfiguration;
@@ -60,6 +62,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
     this.zswapSecretKeys = zswapSecretKeys;
     this.dustSecretKey = dustSecretKey;
     this.unshieldedKeystore = unshieldedKeystore;
+    this.masterSeedHex = masterSeedHex;
   }
 
   getCoinPublicKey(): CoinPublicKey {
@@ -94,16 +97,23 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
     return this.wallet.stop();
   }
 
-  static async build(logger: Logger, env: EnvironmentConfiguration, seed?: string): Promise<MidnightWalletProvider> {
+  static async build(
+    logger: Logger,
+    env: EnvironmentConfiguration,
+    seed?: string,
+    mnemonic?: string,
+  ): Promise<MidnightWalletProvider> {
     const dustOptions: DustWalletOptions = {
       ledgerParams: LedgerParameters.initialParameters(),
       additionalFeeOverhead: env.walletNetworkId === 'undeployed' ? 500_000_000_000_000_000n : 1_000n,
       feeBlocksMargin: 5,
     };
     const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
-    const buildResult = seed
-      ? await builder.withSeed(seed).buildWithoutStarting()
-      : await builder.withRandomSeed().buildWithoutStarting();
+    const buildResult = mnemonic
+      ? await builder.withMnemonic(mnemonic).buildWithoutStarting()
+      : seed
+        ? await builder.withSeed(seed).buildWithoutStarting()
+        : await builder.withRandomSeed().buildWithoutStarting();
     const { wallet, seeds, keystore } = buildResult as unknown as {
       wallet: WalletFacade;
       seeds: { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
@@ -122,6 +132,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       ZswapSecretKeys.fromSeed(seeds.shielded),
       DustSecretKey.fromSeed(seeds.dust),
       keystore,
+      seeds.masterSeed,
     );
   }
 }
