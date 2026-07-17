@@ -64,23 +64,27 @@ npm test
 
 The tests run entirely offline against a local circuit simulator (`contract/src/test/payveil-simulator.ts`) — no proof server or network connection required.
 
-### Deploy to Preview or Preprod
+### Deploy to Preview
 
 ```bash
 # Start the local proof server (used to generate proofs before submitting to the network)
-docker run -p 6300:6300 midnightntwrk/proof-server:latest midnight-proof-server -v
+docker run -p 6300:6300 midnightntwrk/proof-server:8.0.3 midnight-proof-server -v
 
 # In another terminal, from the repo root:
 cd cli
-npm run preview-remote     # or: npm run preprod-remote
+npm run preview-direct
 ```
 
-The CLI will prompt you to build a fresh wallet or restore one from a seed, request testnet funds from the network faucet automatically, then let you deploy a new PayVeil contract or join an existing one by address.
+`preview-direct` builds a wallet (fresh, or imported via `WALLET_SEED`/`WALLET_MNEMONIC` env vars), waits for it to be funded, registers the NIGHT for DUST generation (Midnight's fee token), and deploys PayVeil, printing the resulting contract address.
+
+Funding a wallet requires solving a captcha, so it has to happen through the faucet's web UI at the URL the script logs for your wallet's address — https://midnight-tmnight-preview.nethermind.dev/ — rather than automatically; the SDK's built-in automated faucet client currently posts to the wrong endpoint and never actually delivers funds, which is worth knowing if you hit the same dead end.
+
+There's also `npm run preview-remote` (and `preprod-remote`), which drive an interactive menu via `@midnight-ntwrk/testkit-js`'s `RemoteTestEnvironment` and can deploy or join a contract. It worked but was substantially less reliable in practice (its own ephemeral proof-server containers churned, and a couple of its wallet-sync checks waited on lanes — shielded/dust "strict" sync — that never resolved for a fresh wallet) — `preview-direct` exists because of that.
 
 ## Deployed contract
 
 - **Network:** Preview
-- **Contract address:** `<filled in after deployment>`
+- **Contract address:** `3a742e73a4a6fe249949446d51773bd9ccfd61cb2243a697cf1611bb7fe9fc7c`
 
 ## Screenshots
 
