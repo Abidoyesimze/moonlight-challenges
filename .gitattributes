@@ -1,0 +1,9 @@
+# Compiler-generated circuit artifacts (compact compile output) - not hand-written source.
+contract/src/managed/** linguist-generated=true
+
+*.prover binary
+*.verifier binary
+*.zkir binary
+*.bzkir binary
+*.wasm binary
+*.png binary
